@@ -1,0 +1,138 @@
+REPORT  ZEIGHT_QUEENS.
+CALL FUNCTION 'SAPGUI_PROGRESS_INDICATOR'
+EXPORTING
+TEXT = 'The report is processing the queen problem, please wait for the result.'.
+DATA: BEGIN OF ROW ,
+  VAL TYPE I,
+END OF ROW .
+DATA: I_COLUM LIKE ROW OCCURS 0 WITH HEADER LINE . "COLUM OF THE COLISSION
+DATA: I_LEFT  LIKE ROW OCCURS 0 WITH HEADER LINE . "LEFT DIAGONAL OF THE COLISSION
+DATA: I_RIGHT LIKE ROW OCCURS 0 WITH HEADER LINE . "RIGHT DIAGONAL OF THE COLISSION
+DATA:BEGIN OF queen,
+    row TYPE I VALUE '0',
+    END OF queen.
+DATA: I_QUEEN LIKE QUEEN OCCURS 0 WITH HEADER LINE." QUEEN FOR PRINT.
+DATA: OK_TIMES TYPE I VALUE '0'.
+******GET THE COUNT OF THE QUEEN
+SELECTION-SCREEN COMMENT /12(30) remark.
+PARAMETERS: count TYPE I DEFAULT '8'.
+INITIALIZATION.
+  remark  = 'Please enter the count of queens'.
+  count   = '8'.
+******PROCESS THE QUEEN PROBLEM
+START-OF-SELECTION.
+  WRITE: /,'N QUEEN PROBLEM',/.
+  IF COUNT > '0' AND COUNT < '20'." IF THE COUNT OF QUEEN IS MORE THAN 20, THE TIME MAYBE UNTOTERANBLE.
+    WRITE: /, COUNT,/.
+    PERFORM MAIN_PROCESS USING COUNT.
+  ELSE.
+    WRITE: /, 'WRONG COUNT'.
+  ENDIF.
+****THE MAIN PROCESS FUNCITON
+FORM MAIN_PROCESS USING I_NUM.
+************INITIALIZATION**********************
+  "initial the queen array
+  DO I_NUM TIMES .
+    I_QUEEN-ROW = -1 .
+    APPEND I_QUEEN .
+  ENDDO.
+  "initial the colum and left ,right diagonal
+  "1-NUM
+  DO I_NUM TIMES .
+    I_COLUM-VAL = 0 .
+    APPEND I_COLUM .
+  ENDDO.
+  "ROW-COLUM+NUM(1-2*NUM)
+  DO I_NUM * 2 TIMES .
+    I_LEFT-VAL = 0 .
+    APPEND I_LEFT .
+  ENDDO.
+  "ROW+COLUM(1-2*NUM)
+  DO I_NUM * 2 TIMES .
+    I_RIGHT-VAL = 0 .
+    APPEND I_RIGHT .
+  ENDDO.
+********END OF INITIALZATION*******************
+  " OUTPUT THE COLUM FORMATE.
+  DATA I_OUT TYPE I.
+  I_OUT = 1.
+  WRITE: ' |'.
+  DO COUNT TIMES.
+    WRITE (2) I_OUT.
+    I_OUT = I_OUT + 1.
+  ENDDO.
+  WRITE: /.
+  " END OF THE OUTPUT FORMATE.
+  " CALL CORE THE PROCESSING
+  PERFORM PROCESS_QUEEN USING 1.
+  " OUTPUT THE TOTAL OF SOLUTIONL.
+  WRITE: /, 'There are ',OK_TIMES, 'in all for the solution of ', COUNT,' queen problem'.
+ENDFORM.   " END OF THE MAIN PROCESS
+****the core queen process****
+****I_COUNT MEANS PROCESSING THE I_COUNT ROW.
+FORM PROCESS_QUEEN USING I_COUNT.
+  DATA: I_GO TYPE I.
+  I_GO = 1.
+  WHILE I_GO <= COUNT.
+    READ TABLE I_COLUM INDEX I_GO .
+    READ TABLE I_LEFT INDEX I_COUNT - I_GO + COUNT.
+    READ TABLE I_RIGHT INDEX I_GO + I_COUNT .
+    " IF ALL THE POSTION IS NOT COLISSION WITH OTHERS, THEN CHANGE THE STATUS OF THE POSTION, AND CALL THE PROCESS_QUEEN FOR THE NEXT ROW PROCESSING.
+    IF I_COLUM-VAL = 0 AND I_LEFT-VAL = 0 AND I_RIGHT-VAL = 0.
+      "WRITE I_COLUM-VAL.
+      I_COLUM-VAL = 1 .
+      MODIFY I_COLUM INDEX I_GO .
+      I_LEFT-VAL = 1.
+      MODIFY I_LEFT INDEX I_COUNT - I_GO + COUNT .
+      I_RIGHT-VAL = 1.
+      MODIFY I_RIGHT INDEX I_GO + I_COUNT .
+      "CHANGE THE VALUE OF THE QUEEN.
+      READ TABLE I_QUEEN INDEX I_COUNT.
+      I_QUEEN-ROW = I_GO.
+      MODIFY I_QUEEN INDEX I_COUNT.
+      " check whether the solution has been get,if yes, print out.
+      " else call the next row process_queen proecessing.
+      IF I_COUNT < COUNT." IF THE ROW IS NOT THE LAST ROW, PROCESS NEXT ROW, ELSE PRINT OUT.
+        DATA: I_NEXT TYPE I.
+        I_NEXT = I_COUNT + 1.
+        PERFORM PROCESS_QUEEN USING I_NEXT.
+      ELSE.
+        PERFORM PRINT_QUEEN.
+      ENDIF.
+      "return to the value before, to get more solution.
+      READ TABLE I_COLUM INDEX I_GO .
+      READ TABLE I_LEFT INDEX I_COUNT - I_GO + COUNT.
+      READ TABLE I_RIGHT INDEX I_GO + I_COUNT .
+      I_COLUM-VAL = 0 .
+      MODIFY I_COLUM INDEX I_GO .
+      I_LEFT-VAL = 0.
+      MODIFY I_LEFT INDEX I_COUNT - I_GO + COUNT .
+      I_RIGHT-VAL = 0.
+      MODIFY I_RIGHT INDEX I_GO + I_COUNT .
+    ENDIF.
+    I_GO = I_GO + 1.
+  ENDWHILE.
+ENDFORM. " END OF THE CORE PROCESS
+****the print FORM of the queen******
+FORM PRINT_QUEEN.
+  OK_TIMES = OK_TIMES + 1.
+  DATA i_index type i.
+  i_index = 1." ROW INDEX
+      LOOP AT I_QUEEN .
+        Data i_qu type i.
+        i_qu = 1.
+        WRITE: (2) i_index." OUTPUT THE ROW NUM
+        WHILE i_qu < I_QUEEN-ROW. " OUTPUT THE BLANK BEFORE THE QUEEN
+          WRITE: '_ '.
+          i_qu = i_qu + 1.
+        ENDWHILE.
+        WRITE: '* '. " THE QUEEN POSITION
+        WHILE i_qu < COUNT." OUTPUT THE BLANK AFTER THE QUEEN
+          WRITE: '_ '.
+          i_qu = i_qu + 1.
+        ENDWHILE.
+        WRITE /.
+        i_index = i_index + 1.
+      ENDLOOP .
+      WRITE /.
+ENDFORM. " END OF THE PRINT.
