@@ -1,0 +1,575 @@
+
+REPORT  ZSUDOKURECURSION.
+
+SELECTION-SCREEN: BEGIN OF LINE.
+PARAMETERS: P_A1 TYPE C,
+            P_B1 TYPE C,
+            P_C1 TYPE C.
+SELECTION-SCREEN: POSITION 8.
+PARAMETERS: P_D1 TYPE C,
+            P_E1 TYPE C,
+            P_F1 TYPE C.
+SELECTION-SCREEN: POSITION 15.
+PARAMETERS: P_G1 TYPE C,
+            P_H1 TYPE C,
+            P_I1 TYPE C.
+SELECTION-SCREEN: END OF LINE.
+
+SELECTION-SCREEN: BEGIN OF LINE.
+PARAMETERS: P_A2 TYPE C,
+            P_B2 TYPE C,
+            P_C2 TYPE C.
+SELECTION-SCREEN: POSITION 8.
+PARAMETERS: P_D2 TYPE C,
+            P_E2 TYPE C,
+            P_F2 TYPE C.
+SELECTION-SCREEN: POSITION 15.
+PARAMETERS: P_G2 TYPE C,
+            P_H2 TYPE C,
+            P_I2 TYPE C.
+SELECTION-SCREEN: END OF LINE.
+
+SELECTION-SCREEN: BEGIN OF LINE.
+PARAMETERS: P_A3 TYPE C,
+            P_B3 TYPE C,
+            P_C3 TYPE C.
+SELECTION-SCREEN: POSITION 8.
+PARAMETERS: P_D3 TYPE C,
+            P_E3 TYPE C,
+            P_F3 TYPE C.
+SELECTION-SCREEN: POSITION 15.
+PARAMETERS: P_G3 TYPE C,
+            P_H3 TYPE C,
+            P_I3 TYPE C.
+SELECTION-SCREEN: END OF LINE.
+
+SELECTION-SCREEN SKIP 1.
+
+SELECTION-SCREEN: BEGIN OF LINE.
+PARAMETERS: P_A4 TYPE C,
+            P_B4 TYPE C,
+            P_C4 TYPE C.
+SELECTION-SCREEN: POSITION 8.
+PARAMETERS: P_D4 TYPE C,
+            P_E4 TYPE C,
+            P_F4 TYPE C.
+SELECTION-SCREEN: POSITION 15.
+PARAMETERS: P_G4 TYPE C,
+            P_H4 TYPE C,
+            P_I4 TYPE C.
+SELECTION-SCREEN: END OF LINE.
+
+SELECTION-SCREEN: BEGIN OF LINE.
+PARAMETERS: P_A5 TYPE C,
+            P_B5 TYPE C,
+            P_C5 TYPE C.
+SELECTION-SCREEN: POSITION 8.
+PARAMETERS: P_D5 TYPE C,
+            P_E5 TYPE C,
+            P_F5 TYPE C.
+SELECTION-SCREEN: POSITION 15.
+PARAMETERS: P_G5 TYPE C,
+            P_H5 TYPE C,
+            P_I5 TYPE C.
+SELECTION-SCREEN: END OF LINE.
+
+SELECTION-SCREEN: BEGIN OF LINE.
+PARAMETERS: P_A6 TYPE C,
+            P_B6 TYPE C,
+            P_C6 TYPE C.
+SELECTION-SCREEN: POSITION 8.
+PARAMETERS: P_D6 TYPE C,
+            P_E6 TYPE C,
+            P_F6 TYPE C.
+SELECTION-SCREEN: POSITION 15.
+PARAMETERS: P_G6 TYPE C,
+            P_H6 TYPE C,
+            P_I6 TYPE C.
+SELECTION-SCREEN: END OF LINE.
+
+SELECTION-SCREEN SKIP 1.
+
+SELECTION-SCREEN: BEGIN OF LINE.
+PARAMETERS: P_A7 TYPE C,
+            P_B7 TYPE C,
+            P_C7 TYPE C.
+SELECTION-SCREEN: POSITION 8.
+PARAMETERS: P_D7 TYPE C,
+            P_E7 TYPE C,
+            P_F7 TYPE C.
+SELECTION-SCREEN: POSITION 15.
+PARAMETERS: P_G7 TYPE C,
+            P_H7 TYPE C,
+            P_I7 TYPE C.
+SELECTION-SCREEN: END OF LINE.
+
+SELECTION-SCREEN: BEGIN OF LINE.
+PARAMETERS: P_A8 TYPE C,
+            P_B8 TYPE C,
+            P_C8 TYPE C.
+SELECTION-SCREEN: POSITION 8.
+PARAMETERS: P_D8 TYPE C,
+            P_E8 TYPE C,
+            P_F8 TYPE C.
+SELECTION-SCREEN: POSITION 15.
+PARAMETERS: P_G8 TYPE C,
+            P_H8 TYPE C,
+            P_I8 TYPE C.
+SELECTION-SCREEN: END OF LINE.
+
+SELECTION-SCREEN: BEGIN OF LINE.
+PARAMETERS: P_A9 TYPE C,
+            P_B9 TYPE C,
+            P_C9 TYPE C.
+SELECTION-SCREEN: POSITION 8.
+PARAMETERS: P_D9 TYPE C,
+            P_E9 TYPE C,
+            P_F9 TYPE C.
+SELECTION-SCREEN: POSITION 15.
+PARAMETERS: P_G9 TYPE C,
+            P_H9 TYPE C,
+            P_I9 TYPE C.
+SELECTION-SCREEN: END OF LINE.
+
+* Master internal table holding square contents
+TYPES: BEGIN OF X_MAS,
+         CELL(2) TYPE C,       "Cell address e.?. B4
+         FIXED,                "Cell's value is now fixed ?
+         VAL,                  "Cell's value
+         POSS(9),              "Cell's possible values
+         ROW,                  "Cell's row index
+         COL,                  "Cell's column index
+         GRID,                 "Cell's grid number
+       END OF X_MAS.
+
+TYPES: X_MAST TYPE STANDARD TABLE OF X_MAS WITH DEFAULT KEY.
+
+DATA: T_MAS TYPE X_MAST WITH HEADER LINE.
+
+DATA: C_PAR(2) VALUE 'P_',
+      C_COL(9) VALUE 'ABCDEFGHI',        "Column labels
+      C_LEVEL LIKE SY-INDEX VALUE 20,    "max recursion level B4 check
+                                         "run time
+      C_LIMIT TYPE P VALUE 60,           "max run time in seconds
+      C_ROW(9) VALUE '123456789'.        "row labels
+
+* Tables to hold the possible values for the rows, columns and grids
+DATA: BEGIN OF T_ROWS OCCURS 9,
+        V1,
+        V2,
+        V3,
+        V4,
+        V5,
+        V6,
+        V7,
+        V8,
+        V9,
+      END OF T_ROWS,
+      T_COLS LIKE T_ROWS OCCURS 9 WITH HEADER LINE,
+      T_GRID LIKE T_ROWS OCCURS 9 WITH HEADER LINE.
+
+DATA: W_CELL LIKE T_MAS-CELL,
+      W_FIELD(30),
+      W_LEN LIKE SY-INDEX,
+      W_VAL,
+      W_ANS,
+      W_LEVEL LIKE SY-TABIX,
+      W_STDAT LIKE SY-DATUM,
+      W_STTIM LIKE SY-UZEIT,
+      W_ELAPSED TYPE P,
+      W_COL,
+      W_COLC,
+      W_ROW.
+
+DATA: G_RC LIKE SY-SUBRC.
+
+FIELD-SYMBOLS: <CELL>.
+
+*-Start of selection--------------------------------------------------
+START-OF-SELECTION.
+
+* Get start time
+  GET TIME.
+  W_STDAT = SY-DATUM.
+  W_STTIM = SY-UZEIT.
+  CLEAR W_LEVEL.
+
+* Fill T_MAS with parameter data firstly
+  PERFORM FILL_TMAS.
+
+* Now solve it !
+  PERFORM SOLVE TABLES T_MAS USING G_RC.
+
+*-End of selection----------------------------------------------------
+END-OF-SELECTION.
+
+  IF G_RC <> 0.
+    WRITE: / 'Could not solve'.
+    STOP.
+  ENDIF.
+
+  PERFORM WRITE_ANS.
+
+*-Forms---------------------------------------------------------------
+
+FORM FILL_TMAS.
+************************************************************************
+* This form fills T_MAS with the starting situation of the puzzle
+************************************************************************
+
+  REFRESH T_MAS.
+
+  DO 9 TIMES.
+
+*   Determine the column
+    W_COL = SY-INDEX - 1.
+    W_COLC = C_COL+W_COL(1).  "column label is A-I
+    W_COL = SY-INDEX.         "column index is 1-9
+
+    DO 9 TIMES.
+
+*     Determine the row
+      W_ROW = SY-INDEX.
+
+*     Construct the cell address
+      CONCATENATE W_COLC W_ROW INTO W_CELL.
+
+*     Set up field symbol to point to the corresponding parameter
+      CLEAR W_FIELD.
+      CONCATENATE C_PAR W_CELL INTO W_FIELD.   "e.g. P_D3
+
+      ASSIGN (W_FIELD) TO <CELL> TYPE 'C'.
+
+      CLEAR T_MAS.
+      T_MAS-CELL = W_CELL.
+      T_MAS-ROW = W_ROW.
+      T_MAS-COL = W_COL.
+
+*     Assign correct grid number
+      T_MAS-GRID = ( ( ( W_ROW - 1 ) DIV 3 ) * 3 ) +
+                  ( ( W_COL - 1 ) DIV 3 ) + 1.
+
+*     If the cell has a value specified, indicate that its contents are
+*     fixed
+      IF NOT <CELL> IS INITIAL.
+        T_MAS-FIXED = 'X'.
+        T_MAS-VAL = <CELL>.
+      ENDIF.
+
+      APPEND T_MAS.
+
+    ENDDO.
+
+  ENDDO.
+
+  SORT T_MAS BY CELL.
+
+ENDFORM.
+
+FORM SOLVE TABLES PT_MAS STRUCTURE T_MAS USING RC.
+************************************************************************
+* This form solves the puzzle, if OK RC is set to 0. If it is not
+* soluble RC is set to 4
+************************************************************************
+DATA: T_LOC TYPE X_MAST WITH HEADER LINE.  "Local copy of the puzzle
+
+DATA: L_INDEX LIKE SY-TABIX,
+      L_POSS LIKE T_MAS-POSS,
+      L_RC LIKE SY-TABIX,
+      F_SOLVED.
+
+* Increment recursion level and check run-time if necessary to avoid an
+* infinite loop
+  ADD 1 TO W_LEVEL.
+  IF W_LEVEL >= C_LEVEL.
+    CLEAR W_LEVEL.
+    GET TIME.
+    W_ELAPSED = ( SY-DATUM - W_STDAT ) * 86400.
+    W_ELAPSED = W_ELAPSED + ( SY-UZEIT - W_STTIM ).
+    IF W_ELAPSED > C_LIMIT.
+
+      CALL FUNCTION 'POPUP_TO_CONFIRM'
+           EXPORTING
+                TITLEBAR              = 'Long running'
+                TEXT_QUESTION         = 'Do you want to continue'
+           IMPORTING
+                ANSWER                = W_ANS
+           EXCEPTIONS
+                TEXT_NOT_FOUND        = 1
+                OTHERS                = 2.
+      IF W_ANS <> '1'.
+        RC = 4.
+        STOP.
+      ENDIF.
+      W_STDAT = SY-DATUM.
+      W_STTIM = SY-UZEIT.
+    ENDIF.
+  ENDIF.
+
+* Make local copy of master table
+  T_LOC[] = PT_MAS[].
+
+* Check any cells that can only have 1 value and make replacement
+  DO.
+
+    L_RC = 1.
+
+*   Assume we can solve it to start off with
+    F_SOLVED = 'X'.
+
+*   apply the sudoku rules to determine the possible values for each
+*   cell that is not yet fixed
+    PERFORM BUILD_POSS TABLES T_LOC USING L_RC.
+    IF L_RC = 4.
+      CLEAR F_SOLVED.
+      EXIT.
+    ENDIF.
+
+*   Now check if any cell can only have 1 value and if so, set its value
+    LOOP AT T_LOC
+      WHERE FIXED = SPACE.
+
+      W_LEN = STRLEN( T_LOC-POSS ).
+
+*     If no poss. values for this cell exit with error
+      IF W_LEN = 0.
+        CLEAR F_SOLVED.
+        L_RC = 4.
+        EXIT.
+      ENDIF.
+
+      IF W_LEN = 1.
+        T_LOC-FIXED = 'X'.
+        T_LOC-VAL   = T_LOC-POSS.
+        MODIFY T_LOC.
+        L_RC = 0.  "indicate that we have made some progress...
+      ELSE.
+        CLEAR F_SOLVED.  "we're not there yet
+      ENDIF.
+
+    ENDLOOP.
+
+*   Exit DO loop if solved, error has occurred or no single value
+*   substitutions are possible
+    IF F_SOLVED = 'X'
+      OR L_RC = 4
+      OR L_RC = 1.
+      EXIT.
+    ENDIF.
+
+  ENDDO.
+
+* If it's solved, pass back the answer
+  IF F_SOLVED = 'X'.
+    PT_MAS[] = T_LOC[].
+    RC = 0.
+    EXIT.
+  ENDIF.
+
+* If it can't be solved, pass back the bad news
+  IF L_RC = 4.
+    RC = 4.
+    EXIT.
+  ENDIF.
+
+* Make a guess for one of the unfixed solves and re-try - if it doesn't
+* work we know the guess was wrong and can be eliminated from the
+* possibilities for that cell
+  DO.
+
+    L_RC = 1.
+
+*   Find the first cell whose value is not yet fixed
+    LOOP AT T_LOC
+      WHERE FIXED = SPACE.
+      L_INDEX = SY-TABIX.
+      EXIT.
+    ENDLOOP.
+
+    IF SY-SUBRC <> 0.
+      L_RC = 4.
+      EXIT.
+    ENDIF.
+
+*   Save current possibile value for this cell
+    L_POSS = T_LOC-POSS.
+
+*   Assign the first possible value as the cell's actual value
+    T_LOC-FIXED = 'X'.
+    T_LOC-VAL = L_POSS+0(1).
+    MODIFY T_LOC INDEX L_INDEX.
+
+*   See if we can solve it no
+    PERFORM SOLVE TABLES T_LOC USING L_RC.
+    IF L_RC = 0.
+      EXIT.
+    ENDIF.
+
+*   Didn't work, rule out this as poss value
+    READ TABLE T_LOC INDEX L_INDEX.
+    SHIFT L_POSS LEFT.  "remove the first possibility as it didn't work
+    T_LOC-POSS = L_POSS.
+    CLEAR: T_LOC-FIXED, T_LOC-VAL.
+    MODIFY T_LOC INDEX L_INDEX.
+
+    IF L_POSS IS INITIAL.
+      EXIT.
+    ENDIF.
+
+  ENDDO.
+
+  IF L_RC = 0.
+    PT_MAS[] = T_LOC[].
+    RC = 0.
+  ELSE.
+    RC = 4.
+  ENDIF.
+
+ENDFORM.
+
+FORM BUILD_POSS TABLES PT_LOC STRUCTURE T_MAS USING RC.
+************************************************************************
+* This form applies the sudoku rules for each row, column and grid to
+* determine the possible values for each unfixed cell. If any cell
+* has no possible values or a number has been repeated in a row, column
+* or grid RC, is set to 4.
+************************************************************************
+
+  REFRESH: T_ROWS,
+           T_COLS,
+           T_GRID.
+
+* First everything is possible in each row, column and grid
+  DO 9 TIMES.
+    APPEND C_ROW TO T_ROWS.   "i.e. rows 1-9 can have value 123456789
+    APPEND C_ROW TO T_COLS.
+    APPEND C_ROW TO T_GRID.
+  ENDDO.
+
+* Now remove the fixed values from the possibilities.
+  LOOP AT PT_LOC
+    WHERE FIXED = 'X'.
+
+*   remove from possibilities
+    READ TABLE T_ROWS INDEX PT_LOC-ROW.
+    REPLACE PT_LOC-VAL WITH SPACE INTO T_ROWS.
+    IF SY-SUBRC <> 0.
+*     If the value has already been removed we have a duplicate number
+*     in the row so exit
+      RC = 4.
+      EXIT.
+    ENDIF.
+    MODIFY T_ROWS INDEX PT_LOC-ROW.
+
+    READ TABLE T_COLS INDEX PT_LOC-COL.
+    REPLACE PT_LOC-VAL WITH SPACE INTO T_COLS.
+    IF SY-SUBRC <> 0.
+      RC = 4.
+      EXIT.
+    ENDIF.
+    MODIFY T_COLS INDEX PT_LOC-COL.
+
+    READ TABLE T_GRID INDEX PT_LOC-GRID.
+    REPLACE PT_LOC-VAL WITH SPACE INTO T_GRID.
+    IF SY-SUBRC <> 0.
+      RC = 4.
+      EXIT.
+    ENDIF.
+    MODIFY T_GRID INDEX PT_LOC-GRID.
+
+  ENDLOOP.
+
+  CHECK RC <> 4.
+
+* Now set up possibilities for non-fixed values
+  LOOP AT PT_LOC
+    WHERE FIXED = ' '.
+
+    READ TABLE T_ROWS INDEX PT_LOC-ROW.
+    READ TABLE T_COLS INDEX PT_LOC-COL.
+    READ TABLE T_GRID INDEX PT_LOC-GRID.
+
+*   Possible values = 123456789 initially
+    PT_LOC-POSS = C_ROW.
+
+*   Now check if allowed in that row, column, grid
+    DO 9 TIMES.
+      W_VAL = SY-INDEX.
+      IF T_ROWS NA W_VAL
+        OR T_COLS NA W_VAL
+        OR T_GRID NA W_VAL.
+        REPLACE W_VAL WITH SPACE INTO PT_LOC-POSS.
+      ENDIF.
+    ENDDO.
+
+    CONDENSE PT_LOC-POSS NO-GAPS.
+    MODIFY PT_LOC.
+
+  ENDLOOP.
+
+ENDFORM.
+
+FORM WRITE_ANS.
+************************************************************************
+* This form writes the answer grid, once with gaps and again as a simple
+* list
+************************************************************************
+
+  DO 9 TIMES.
+
+    W_ROW = SY-INDEX.
+
+    DO 9 TIMES.
+
+      W_COL = SY-INDEX - 1.
+      W_COL = C_COL+W_COL(1).
+
+      CONCATENATE W_COL W_ROW INTO W_CELL.
+
+      READ TABLE T_MAS
+        WITH KEY CELL = W_CELL.
+
+      IF SY-INDEX = 1.
+        WRITE: / T_MAS-VAL NO-GAP.
+      ELSEIF SY-INDEX = 3.
+        WRITE: T_MAS-VAL.
+      ELSEIF SY-INDEX = 6.
+        WRITE: T_MAS-VAL.
+      ELSE.
+        WRITE: T_MAS-VAL NO-GAP.
+      ENDIF.
+
+    ENDDO.
+
+    IF SY-INDEX = 3 OR SY-INDEX = 6.
+      SKIP.
+    ENDIF.
+  ENDDO.
+
+  SKIP 2.
+
+  DO 9 TIMES.
+
+    W_ROW = SY-INDEX.
+
+    DO 9 TIMES.
+
+      W_COL = SY-INDEX - 1.
+      W_COL = C_COL+W_COL(1).
+
+      CONCATENATE W_COL W_ROW INTO W_CELL.
+
+      READ TABLE T_MAS
+        WITH KEY CELL = W_CELL.
+
+      IF SY-INDEX = 1.
+        WRITE: / T_MAS-VAL NO-GAP.
+      ELSE.
+        WRITE: T_MAS-VAL NO-GAP.
+      ENDIF.
+
+    ENDDO.
+
+  ENDDO.
+
+ENDFORM.

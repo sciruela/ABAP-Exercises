@@ -1,0 +1,522 @@
+*&---------------------------------------------------------------------*
+*& Report  ZSUDOKU
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  ZSUDOKU NO STANDARD PAGE HEADING
+                  LINE-SIZE 115 .
+
+*-- Types declaration
+*-- Type for Sudoku internal table
+TYPES: BEGIN OF ty_sodu,
+         x_pos  TYPE i,
+         y_pos  TYPE i,
+         value  TYPE i,
+         exc(9) TYPE c,
+       END OF ty_sodu.
+*-- Type for exclusion logic
+TYPES: BEGIN OF ty_exc,
+         pos    TYPE i,
+         exc(9) TYPE c,
+       END OF ty_exc.
+*-- type for counter
+TYPES: BEGIN OF ty_cntr,
+         pos_x TYPE c,
+         pos   TYPE c,
+         val   TYPE c,
+         cntr  TYPE btdel,
+       END OF ty_cntr.
+*-- Table type for Sudoku internal table
+TYPES: ty_t_sodu TYPE STANDARD TABLE OF ty_sodu.
+DATA: i_sodu  TYPE STANDARD TABLE OF ty_sodu,
+      i_chk   TYPE STANDARD TABLE OF ty_sodu,
+      wa_sodu TYPE ty_sodu.
+DATA : v_selopt TYPE i,
+       v_cnt    TYPE i,
+       v_chk    TYPE i.
+*-- Ranges for 3x3 exclusions
+RANGES: r_selx FOR v_selopt,
+        r_sely FOR v_selopt.
+*-- Selection Screen
+SELECTION-SCREEN: BEGIN OF BLOCK blk1 WITH FRAME TITLE text-001.
+SELECTION-SCREEN: BEGIN OF LINE.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS: p_11 TYPE char1,
+            p_12 TYPE char1,
+            p_13 TYPE char1.
+SELECTION-SCREEN POSITION 25.
+PARAMETERS: p_14 TYPE char1,
+            p_15 TYPE char1,
+            p_16 TYPE char1.
+SELECTION-SCREEN POSITION 35.
+PARAMETERS: p_17 TYPE char1,
+            p_18 TYPE char1,
+            p_19 TYPE char1.
+SELECTION-SCREEN: END OF LINE.
+SELECTION-SCREEN: BEGIN OF LINE.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS: p_21 TYPE char1,
+            p_22 TYPE char1,
+            p_23 TYPE char1.
+SELECTION-SCREEN POSITION 25.
+PARAMETERS: p_24 TYPE char1,
+            p_25 TYPE char1,
+            p_26 TYPE char1.
+SELECTION-SCREEN POSITION 35.
+PARAMETERS: p_27 TYPE char1,
+            p_28 TYPE char1,
+            p_29 TYPE char1.
+SELECTION-SCREEN: END OF LINE.
+SELECTION-SCREEN: BEGIN OF LINE.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS: p_31 TYPE char1,
+            p_32 TYPE char1,
+            p_33 TYPE char1.
+SELECTION-SCREEN POSITION 25.
+PARAMETERS: p_34 TYPE char1,
+            p_35 TYPE char1,
+            p_36 TYPE char1.
+SELECTION-SCREEN POSITION 35.
+PARAMETERS: p_37 TYPE char1,
+            p_38 TYPE char1,
+            p_39 TYPE char1.
+SELECTION-SCREEN: END OF LINE.
+SELECTION-SCREEN SKIP.
+SELECTION-SCREEN: BEGIN OF LINE.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS: p_41 TYPE char1,
+            p_42 TYPE char1,
+            p_43 TYPE char1.
+SELECTION-SCREEN POSITION 25.
+PARAMETERS: p_44 TYPE char1,
+            p_45 TYPE char1,
+            p_46 TYPE char1.
+SELECTION-SCREEN POSITION 35.
+PARAMETERS: p_47 TYPE char1,
+            p_48 TYPE char1,
+            p_49 TYPE char1.
+SELECTION-SCREEN: END OF LINE.
+SELECTION-SCREEN: BEGIN OF LINE.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS: p_51 TYPE char1,
+            p_52 TYPE char1,
+            p_53 TYPE char1.
+SELECTION-SCREEN POSITION 25.
+PARAMETERS: p_54 TYPE char1,
+            p_55 TYPE char1,
+            p_56 TYPE char1.
+SELECTION-SCREEN POSITION 35.
+PARAMETERS: p_57 TYPE char1,
+            p_58 TYPE char1,
+            p_59 TYPE char1.
+SELECTION-SCREEN: END OF LINE.
+SELECTION-SCREEN: BEGIN OF LINE.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS: p_61 TYPE char1,
+            p_62 TYPE char1,
+            p_63 TYPE char1.
+SELECTION-SCREEN POSITION 25.
+PARAMETERS: p_64 TYPE char1,
+            p_65 TYPE char1,
+            p_66 TYPE char1.
+SELECTION-SCREEN POSITION 35.
+PARAMETERS: p_67 TYPE char1,
+            p_68 TYPE char1,
+            p_69 TYPE char1.
+SELECTION-SCREEN: END OF LINE.
+SELECTION-SCREEN SKIP.
+SELECTION-SCREEN: BEGIN OF LINE.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS: p_71 TYPE char1,
+            p_72 TYPE char1,
+            p_73 TYPE char1.
+SELECTION-SCREEN POSITION 25.
+PARAMETERS: p_74 TYPE char1,
+            p_75 TYPE char1,
+            p_76 TYPE char1.
+SELECTION-SCREEN POSITION 35.
+PARAMETERS: p_77 TYPE char1,
+            p_78 TYPE char1,
+            p_79 TYPE char1.
+SELECTION-SCREEN: END OF LINE.
+SELECTION-SCREEN: BEGIN OF LINE.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS: p_81 TYPE char1,
+            p_82 TYPE char1,
+            p_83 TYPE char1.
+SELECTION-SCREEN POSITION 25.
+PARAMETERS: p_84 TYPE char1,
+            p_85 TYPE char1,
+            p_86 TYPE char1.
+SELECTION-SCREEN POSITION 35.
+PARAMETERS: p_87 TYPE char1,
+            p_88 TYPE char1,
+            p_89 TYPE char1.
+SELECTION-SCREEN: END OF LINE.
+SELECTION-SCREEN: BEGIN OF LINE.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS: p_91 TYPE char1,
+            p_92 TYPE char1,
+            p_93 TYPE char1.
+SELECTION-SCREEN POSITION 25.
+PARAMETERS: p_94 TYPE char1,
+            p_95 TYPE char1,
+            p_96 TYPE char1.
+SELECTION-SCREEN POSITION 35.
+PARAMETERS: p_97 TYPE char1,
+            p_98 TYPE char1,
+            p_99 TYPE char1.
+SELECTION-SCREEN: END OF LINE.
+SELECTION-SCREEN: END OF BLOCK blk1.
+*-- Start
+START-OF-SELECTION.
+*-- To fill the Sudoku internal table from selection screen
+  PERFORM fill_table CHANGING i_sodu.
+  DO.
+*-- To fill the exclusions for every row
+    PERFORM row_exclusions    CHANGING i_sodu.
+*-- To fill the exclusions for every column
+    PERFORM column_exclusions CHANGING i_sodu.
+*-- to fill the exclusions for every 3x3 block
+    PERFORM m3_x_3_exclusion   CHANGING i_sodu.
+*-- Parsing for filling the value in each cell if all
+*-- exclusion values are filled
+    PERFORM parsing CHANGING i_sodu.
+*-- Filling all the relevant values belonging to one row
+    PERFORM hori_fill CHANGING i_sodu.
+*-- To check if all values have been derived
+    READ TABLE i_sodu INTO wa_sodu
+    WITH KEY value = '0'.
+    IF sy-subrc <> 0.
+      EXIT.
+    ENDIF.
+*-- To prevent infinite loops
+    CLEAR i_chk.
+    i_chk = i_sodu.
+    DELETE i_chk WHERE value EQ '0'.
+    DESCRIBE TABLE i_chk LINES v_cnt.
+    IF v_cnt = v_chk.
+      WRITE : / text-002 . "Data Insufficient
+      v_chk = 99.
+      EXIT.
+    ENDIF.
+    v_chk = v_cnt.
+  ENDDO.
+END-OF-SELECTION.
+*-- Display the solution
+  IF v_chk NE 99.
+    PERFORM display_output USING i_sodu.
+  ENDIF.
+*&---------------------------------------------------------------------*
+*&      Form  fill_table
+*&---------------------------------------------------------------------*
+*       Fill the internal table with values from selection screen
+*----------------------------------------------------------------------*
+*      <--P_I_SODU  Sudoku Internal table
+*----------------------------------------------------------------------*
+FORM fill_table  CHANGING p_i_sodu TYPE ty_t_sodu.
+*-- Local data declaration
+  DATA: l_wa_sodu TYPE ty_sodu,
+        l_v_char1 TYPE char1,
+        l_v_char2 TYPE char1,
+        l_cnt1    TYPE i,
+        l_cnt2    TYPE i,
+        v_fld     TYPE char4.
+  FIELD-SYMBOLS: <f_tab> TYPE ANY.
+  DO 9 TIMES.
+    l_cnt1 = l_cnt1 + 1.
+    CLEAR l_cnt2.
+    DO 9 TIMES.
+      CLEAR v_fld.
+      l_cnt2 = l_cnt2 + 1.
+      l_v_char1 = l_cnt1.
+      l_v_char2 = l_cnt2.
+      CONCATENATE 'P_' l_v_char1 l_v_char2 INTO v_fld.
+      ASSIGN (v_fld) TO <f_tab>.
+      l_wa_sodu-value = <f_tab>.
+      l_wa_sodu-x_pos = l_cnt1.
+      l_wa_sodu-y_pos = l_cnt2.
+      APPEND l_wa_sodu TO p_i_sodu.
+      CLEAR l_wa_sodu.
+    ENDDO.
+  ENDDO.
+  UNASSIGN <f_tab>.
+ENDFORM.                    " fill_table
+*&---------------------------------------------------------------------*
+*&      Form  hori_fill
+*&---------------------------------------------------------------------*
+*       Fill values based on hatching logic
+*----------------------------------------------------------------------*
+*      <--P_I_SODU  text
+*----------------------------------------------------------------------*
+FORM hori_fill  CHANGING p_i_sodu TYPE ty_t_sodu.
+*-- Local data declaration
+  DATA: l_i_exc TYPE STANDARD TABLE OF ty_exc,
+        l_wa_exc TYPE ty_exc.
+  DATA: l_i_cntr TYPE STANDARD TABLE OF ty_cntr,
+        l_wa_cntr TYPE ty_cntr.
+  DATA: l_wa_sodu TYPE ty_sodu,
+        l_wa_chk TYPE ty_sodu.
+  DATA: l_cnt TYPE i,
+        l_cnt2 TYPE i,
+        l_cnt3 TYPE i,
+        l_v_lines TYPE i.
+  DO 9 TIMES.
+    l_cnt = l_cnt + 1.
+    CLEAR l_i_exc.
+    CLEAR l_i_cntr.
+    LOOP AT p_i_sodu INTO l_wa_sodu WHERE x_pos = l_cnt.
+      IF l_wa_sodu-value IS INITIAL.
+        l_wa_exc-pos = l_wa_sodu-y_pos.
+        l_wa_exc-exc = l_wa_sodu-exc.
+        APPEND l_wa_exc TO l_i_exc.
+      ENDIF.
+    ENDLOOP.
+    LOOP AT p_i_sodu INTO l_wa_sodu WHERE x_pos = l_cnt.
+      IF l_wa_sodu-value IS INITIAL.
+        LOOP AT l_i_exc INTO l_wa_exc WHERE pos NE l_wa_sodu-y_pos.
+          CLEAR l_cnt2.
+          DO 9 TIMES.
+            l_cnt2 = l_cnt2 + 1.
+            l_cnt3 = l_cnt2 - 1.
+            IF l_wa_exc-exc+l_cnt3(1) = l_cnt2 .
+              READ TABLE p_i_sodu INTO l_wa_chk WITH KEY
+                                  x_pos = l_cnt
+                                  value = l_cnt2.
+              IF sy-subrc <> 0 AND
+                 NOT l_wa_chk IS INITIAL.
+                READ TABLE l_i_cntr INTO l_wa_cntr
+                WITH KEY pos_x = l_wa_sodu-x_pos
+                         pos = l_wa_sodu-y_pos
+                         val = l_cnt2.
+                IF sy-subrc <> 0.
+                  l_wa_cntr-val = l_cnt2 .
+                  l_wa_cntr-cntr = 1.
+                  l_wa_cntr-pos = l_wa_sodu-y_pos.
+                  l_wa_cntr-pos_x = l_wa_sodu-x_pos.
+                  APPEND l_wa_cntr TO l_i_cntr.
+                ELSE.
+                  l_wa_cntr-cntr = l_wa_cntr-cntr + 1.
+                  MODIFY l_i_cntr FROM l_wa_cntr INDEX sy-tabix.
+                ENDIF.
+              ENDIF.
+            ENDIF.
+          ENDDO.
+        ENDLOOP.
+        DESCRIBE TABLE l_i_exc LINES l_v_lines.
+        l_v_lines = l_v_lines - 1.
+        SORT l_i_cntr BY cntr.
+        LOOP AT l_i_cntr INTO l_wa_cntr WHERE cntr = l_v_lines.
+          l_wa_sodu-value = l_wa_cntr-val.
+          l_wa_sodu-x_pos = l_wa_cntr-pos_x.
+          l_wa_sodu-y_pos = l_wa_cntr-pos.
+          READ TABLE p_i_sodu INTO l_wa_sodu
+                     WITH KEY x_pos = l_wa_cntr-pos_x
+                              y_pos = l_wa_cntr-pos.
+          IF sy-subrc = 0.
+            l_wa_sodu-value = l_wa_cntr-val.
+            MODIFY p_i_sodu FROM l_wa_sodu INDEX sy-tabix.
+          ENDIF.
+        ENDLOOP.
+      ENDIF.
+    ENDLOOP.
+  ENDDO.
+ENDFORM.                    " hori_fill
+*&---------------------------------------------------------------------*
+*&      Form  display_output
+*&---------------------------------------------------------------------*
+*       Display the Solution
+*----------------------------------------------------------------------*
+*      -->P_I_SODU  Int table - Solution
+*----------------------------------------------------------------------*
+FORM display_output  USING    p_i_sodu TYPE ty_t_sodu.
+*-- Local data declaration
+  DATA: l_wa_sodu TYPE ty_sodu.
+  DATA: l_v_cnt   TYPE i.
+  LOOP AT p_i_sodu INTO l_wa_sodu.
+*-- Formatting
+    AT NEW x_pos.
+      CLEAR l_v_cnt.
+      l_v_cnt = ( l_wa_sodu-x_pos - 1 ) MOD 3.
+      IF l_v_cnt = 0 .
+        ULINE.
+      ELSE.
+        NEW-LINE.
+      ENDIF.
+      WRITE sy-vline.
+    ENDAT.
+    WRITE : l_wa_sodu-value .
+*-- Formatting
+    CLEAR l_v_cnt.
+    l_v_cnt = sy-tabix MOD 3.
+    IF l_v_cnt = 0.
+      WRITE   sy-vline.
+    ENDIF.
+  ENDLOOP.
+  ULINE.
+ENDFORM.                    " display_output
+*&---------------------------------------------------------------------*
+*&      Form  parsing
+*&---------------------------------------------------------------------*
+*       Filling in values
+*----------------------------------------------------------------------*
+*      <--P_I_SODU  Int table with values
+*----------------------------------------------------------------------*
+FORM parsing  CHANGING p_i_sodu TYPE ty_t_sodu.
+*-- Local Data declaration
+  DATA: l_wa_sodu  TYPE ty_sodu,
+        l_v_cnt    TYPE i,
+        l_v_cnt2   TYPE i,
+        l_v_val(9) TYPE c.
+  LOOP AT p_i_sodu INTO l_wa_sodu.
+    IF l_wa_sodu-value IS INITIAL.
+      CLEAR: l_v_cnt,
+             l_v_cnt2,
+             l_v_val.
+      DO 9 TIMES.
+        IF l_wa_sodu-exc+l_v_cnt(1) IS INITIAL.
+          l_v_val  = l_v_cnt + 1.
+          l_v_cnt2 = l_v_cnt2 + 1.
+        ENDIF.
+        l_v_cnt = l_v_cnt + 1.
+      ENDDO.
+      IF l_v_cnt2 = 1.
+        l_wa_sodu-value = l_v_val.
+        MODIFY p_i_sodu FROM l_wa_sodu.
+      ENDIF.
+    ENDIF.
+  ENDLOOP.
+ENDFORM.                    " parsing
+*&---------------------------------------------------------------------*
+*&      Form  row_exclusions
+*&---------------------------------------------------------------------*
+*       To fill the row exclusions
+*----------------------------------------------------------------------*
+*      <--P_I_SODU
+*----------------------------------------------------------------------*
+FORM row_exclusions  CHANGING p_i_sodu TYPE ty_t_sodu.
+*-- Local Data declaration
+  DATA: l_wa_sodu  TYPE ty_sodu,
+        l_v_cnt    TYPE i,
+        l_v_val(9) TYPE c,
+        l_v_template(9) TYPE c.
+  l_v_cnt = 1.
+  DO 9 TIMES.
+    CLEAR l_v_template.
+    LOOP AT p_i_sodu INTO l_wa_sodu WHERE y_pos = l_v_cnt.
+      IF l_wa_sodu-value IS NOT INITIAL.
+        l_v_val = l_wa_sodu-value.
+        l_v_val = l_v_val - 1.
+        l_v_template+l_v_val(1) = l_wa_sodu-value.
+      ENDIF.
+    ENDLOOP.
+    LOOP AT p_i_sodu INTO l_wa_sodu WHERE y_pos = l_v_cnt.
+      OVERLAY l_wa_sodu-exc WITH l_v_template.
+      MODIFY  p_i_sodu FROM l_wa_sodu.
+    ENDLOOP.
+    l_v_cnt = l_v_cnt + 1.
+  ENDDO.
+ENDFORM.                    " row_exclusions
+*&---------------------------------------------------------------------*
+*&      Form  column_exclusions
+*&---------------------------------------------------------------------*
+*       To fill column exclusions
+*----------------------------------------------------------------------*
+*      <--P_I_SODU  Int table
+*----------------------------------------------------------------------*
+FORM column_exclusions  CHANGING p_i_sodu TYPE ty_t_sodu.
+*-- Local Data declaration
+  DATA: l_wa_sodu  TYPE ty_sodu,
+        l_v_cnt    TYPE i,
+        l_v_val(9) TYPE c,
+        l_v_template(9) TYPE c.
+  l_v_cnt = 1.
+  DO 9 TIMES.
+    CLEAR l_v_template.
+    LOOP AT p_i_sodu INTO l_wa_sodu WHERE x_pos = l_v_cnt.
+      IF l_wa_sodu-value IS NOT INITIAL.
+        l_v_val = l_wa_sodu-value.
+        l_v_val = l_v_val - 1.
+        l_v_template+l_v_val(1) = l_wa_sodu-value.
+      ENDIF.
+    ENDLOOP.
+    LOOP AT p_i_sodu INTO l_wa_sodu WHERE x_pos = l_v_cnt.
+      OVERLAY l_wa_sodu-exc WITH l_v_template.
+      MODIFY p_i_sodu FROM l_wa_sodu.
+    ENDLOOP.
+    l_v_cnt = l_v_cnt + 1.
+  ENDDO.
+ENDFORM.                    " column_exclusions
+*&---------------------------------------------------------------------*
+*&      Form  m3_x_3_exclusion
+*&---------------------------------------------------------------------*
+*       to fill 3x3 block exclusions
+*----------------------------------------------------------------------*
+*      <--P_I_SODU  sudoku internal table
+*----------------------------------------------------------------------*
+FORM m3_x_3_exclusion  CHANGING p_i_sodu TYPE ty_t_sodu.
+*-- Local Data declaration
+  DATA: l_wa_sodu  TYPE ty_sodu,
+        l_v_cnt    TYPE i,
+        l_v_cnt2   TYPE i,
+        l_v_val(9) TYPE c,
+        l_v_template(9) TYPE c.
+  l_v_cnt2 = 1.
+  DO 3 TIMES.
+    l_v_cnt = 1.
+    CLEAR l_v_template.
+    CLEAR r_sely.
+    REFRESH r_sely.
+    r_sely-option = 'EQ'.
+    r_sely-low    = l_v_cnt2.
+    r_sely-sign = 'I'.
+    APPEND r_sely.
+    l_v_cnt2 = l_v_cnt2 + 1.
+    r_sely-option = 'EQ'.
+    r_sely-low    = l_v_cnt2.
+    r_sely-sign = 'I'.
+    APPEND r_sely.
+    l_v_cnt2 = l_v_cnt2 + 1.
+    r_sely-option = 'EQ'.
+    r_sely-low    = l_v_cnt2.
+    r_sely-sign = 'I'.
+    APPEND r_sely.
+    DO 3 TIMES.
+      CLEAR r_selx.
+      REFRESH r_selx.
+      r_selx-option = 'EQ'.
+      r_selx-low    = l_v_cnt.
+      r_selx-sign = 'I'.
+      APPEND r_selx.
+      l_v_cnt = l_v_cnt + 1.
+      r_selx-option = 'EQ'.
+      r_selx-low    = l_v_cnt.
+      r_selx-sign = 'I'.
+      APPEND r_selx.
+      l_v_cnt = l_v_cnt + 1.
+      r_selx-option = 'EQ'.
+      r_selx-low    = l_v_cnt.
+      r_selx-sign = 'I'.
+      APPEND r_selx.
+      CLEAR l_v_template.
+      LOOP AT p_i_sodu INTO l_wa_sodu WHERE x_pos IN r_selx AND
+                                        y_pos IN r_sely .
+        IF l_wa_sodu-value IS NOT INITIAL.
+          l_v_val = l_wa_sodu-value.
+          l_v_val = l_v_val - 1.
+          l_v_template+l_v_val(1) = l_wa_sodu-value.
+        ENDIF.
+      ENDLOOP.
+      LOOP AT p_i_sodu INTO l_wa_sodu WHERE x_pos IN r_selx AND
+                                        y_pos IN r_sely .
+        OVERLAY l_wa_sodu-exc WITH l_v_template.
+        MODIFY p_i_sodu FROM l_wa_sodu.
+      ENDLOOP.
+      l_v_cnt = l_v_cnt + 1.
+    ENDDO.
+    l_v_cnt2 = l_v_cnt2 + 1.
+  ENDDO.
+ENDFORM.                    " 3_x_3_exclusion
